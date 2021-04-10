@@ -152,7 +152,7 @@ class XMLParser extends \XMLReader
 			return true;
 		}
 
-		$this->nodes[$this->depth]       = new Node($this->nodeType, $this->localName);
+		$this->nodes[$this->depth]       = new Node($this->nodeType, $this->name, $this->localName);
 		$this->nodeCounter[$this->depth] = 1;
 
 		return true;

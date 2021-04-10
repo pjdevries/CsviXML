@@ -14,6 +14,8 @@ class Node
 {
 	private $type = \XMLReader::NONE;
 
+	private $name = '';
+
 	private $localName = '';
 
 	/**
@@ -22,9 +24,10 @@ class Node
 	 * @param   int     $type
 	 * @param   string  $localName
 	 */
-	public function __construct(int $type, string $localName)
+	public function __construct(int $type, string $name, string $localName)
 	{
 		$this->type      = $type;
+		$this->name      = $name;
 		$this->localName = $localName;
 	}
 
@@ -48,6 +51,25 @@ class Node
 		return $this;
 	}
 
+	/**
+	 * @return string
+	 */
+	public function getName(): string
+	{
+		return $this->name;
+	}
+
+	/**
+	 * @param   string  $name
+	 *
+	 * @return Node
+	 */
+	public function setName(string $name): Node
+	{
+		$this->name = $name;
+
+		return $this;
+	}
 
 	/**
 	 * @return string
@@ -77,24 +99,24 @@ class Node
 	public static function typeName(int $nodeType): string
 	{
 		static $names = [
-			\XMLReader::NONE => 'NONE',
-			\XMLReader::ELEMENT => 'ELEMENT',
-			\XMLReader::ATTRIBUTE => 'ATTRIBUTE',
-			\XMLReader::TEXT => 'TEXT',
-			\XMLReader::CDATA => 'CDATA',
-			\XMLReader::ENTITY_REF => 'ENTITY_REF',
-			\XMLReader::ENTITY => 'ENTITY',
-			\XMLReader::PI => 'PI',
-			\XMLReader::COMMENT => 'COMMENT',
-			\XMLReader::DOC => 'DOC',
-			\XMLReader::DOC_TYPE => 'DOC_TYPE',
-			\XMLReader::DOC_FRAGMENT => 'DOC_FRAGMENT',
-			\XMLReader::NOTATION => 'NOTATION',
-			\XMLReader::WHITESPACE => 'WHITESPACE',
+			\XMLReader::NONE                   => 'NONE',
+			\XMLReader::ELEMENT                => 'ELEMENT',
+			\XMLReader::ATTRIBUTE              => 'ATTRIBUTE',
+			\XMLReader::TEXT                   => 'TEXT',
+			\XMLReader::CDATA                  => 'CDATA',
+			\XMLReader::ENTITY_REF             => 'ENTITY_REF',
+			\XMLReader::ENTITY                 => 'ENTITY',
+			\XMLReader::PI                     => 'PI',
+			\XMLReader::COMMENT                => 'COMMENT',
+			\XMLReader::DOC                    => 'DOC',
+			\XMLReader::DOC_TYPE               => 'DOC_TYPE',
+			\XMLReader::DOC_FRAGMENT           => 'DOC_FRAGMENT',
+			\XMLReader::NOTATION               => 'NOTATION',
+			\XMLReader::WHITESPACE             => 'WHITESPACE',
 			\XMLReader::SIGNIFICANT_WHITESPACE => 'SIGNIFICANT_WHITESPACE',
-			\XMLReader::END_ELEMENT => 'END_ELEMENT',
-			\XMLReader::END_ENTITY => 'END_ENTITY',
-			\XMLReader::XML_DECLARATION => 'XML_DECLARATION'
+			\XMLReader::END_ELEMENT            => 'END_ELEMENT',
+			\XMLReader::END_ENTITY             => 'END_ENTITY',
+			\XMLReader::XML_DECLARATION        => 'XML_DECLARATION'
 		];
 
 		return $names[$nodeType];
