@@ -23,7 +23,7 @@ class XMLParser extends \XMLReader
 	/**
 	 * Callbacks
 	 *
-	 * @var array
+	 * @var XpathHandlerInterface[][]
 	 */
 	protected $xpathHandlers = [];
 
@@ -44,7 +44,7 @@ class XMLParser extends \XMLReader
 	/**
 	 * Stack of node position
 	 *
-	 * @var array
+	 * @var int[]
 	 */
 	protected $nodeCounter = [];
 
@@ -118,12 +118,14 @@ class XMLParser extends \XMLReader
 	 * @link http://php.net/manual/en/xmlreader.read.php
 	 * @return bool Returns TRUE on success or FALSE on failure.
 	 */
-	public function read(): bool
+	public function read():? Node
 	{
 		if (!parent::read())
 		{
-			return false;
+			return null;
 		}
+
+		$node = Node::fromReader($this);
 
 		if ($this->depth < $this->prevDepth)
 		{
@@ -137,25 +139,27 @@ class XMLParser extends \XMLReader
 				throw new XmlParserException("Invalid XML: missing items in XMLParser::\$nodesCounter");
 			}
 
-			$this->nodes       = array_slice($this->nodes, 0, $this->depth + 1, true);
-			$this->nodeCounter = array_slice($this->nodeCounter, 0, $this->depth + 1, true);
+			$previousNode = array_pop($this->nodes);
+			$previousCounter = array_pop($this->nodeCounter);
 		}
 
 		$this->prevDepth = $this->depth;
 
 		if (isset($this->nodes[$this->depth])
-			&& $this->localName === $this->nodes[$this->depth]->getLocalName()
-			&& $this->nodeType === $this->nodes[$this->depth]->getType())
+			&& $this->localName === $this->nodes[$this->depth]->localName
+			&& $this->nodeType === $this->nodes[$this->depth]->nodeType)
 		{
 			$this->nodeCounter[$this->depth]++;
 
 			return true;
 		}
 
-		$this->nodes[$this->depth]       = new Node($this->nodeType, $this->name, $this->localName);
+		$node->setXpath($this->currentXpath());
+
+		$this->nodes[$this->depth]       = $node;
 		$this->nodeCounter[$this->depth] = 1;
 
-		return true;
+		return $node;
 	}
 
 	/**
@@ -176,10 +180,10 @@ class XMLParser extends \XMLReader
 
 		foreach ($this->nodes as $depth => $node)
 		{
-			switch ($node->getType())
+			switch ($node->nodeType)
 			{
 				case \XMLReader::ELEMENT:
-					$xpath .= '/' . $node->getLocalName();
+					$xpath .= '/' . $node->localName;
 
 					if ($nodeCounter)
 					{
@@ -197,14 +201,13 @@ class XMLParser extends \XMLReader
 					break;
 
 				case \XMLReader::ATTRIBUTE:
-					$xpath .= '[@{' . $node->getLocalName() . '}]';
+					$xpath .= '[@{' . $node->localName . '}]';
 					break;
 			}
 		}
 
 		return $xpath;
 	}
-
 
 	/**
 	 * Run parser
@@ -213,23 +216,23 @@ class XMLParser extends \XMLReader
 	 */
 	public function parse(): void
 	{
-		while ($this->read())
+		while ($node = $this->read())
 		{
 			if (!isset($this->xpathHandlers[$this->nodeType]))
 			{
 				continue;
 			}
 
-			/** @var XpathHandlerInterface $pathHandler */
+			$nodeTypeHandlers = $this->xpathHandlers[$this->nodeType];
 
-			$pathHandler = $this->xpathHandlers[$this->nodeType]['*'] ?? null;
+			$pathHandler = $this->findHandler($nodeTypeHandlers, '//*');
 
 			if ($pathHandler && $pathHandler->handle($this))
 			{
 				continue;
 			}
 
-			$pathHandler = $this->xpathHandlers[$this->nodeType][$this->name] ?? null;
+			$pathHandler = $this->findHandler($nodeTypeHandlers, $this->name);
 
 			if ($pathHandler && $pathHandler->handle($this))
 			{
@@ -237,7 +240,7 @@ class XMLParser extends \XMLReader
 			}
 
 			$xpath       = $this->currentXpath(false); // without node counter
-			$pathHandler = $this->xpathHandlers[$this->nodeType][$xpath] ?? null;
+			$pathHandler = $this->findHandler($nodeTypeHandlers, $xpath);
 
 			if ($pathHandler && $pathHandler->handle($this))
 			{
@@ -245,13 +248,31 @@ class XMLParser extends \XMLReader
 			}
 
 			$xpath       = $this->currentXpath(true); // with node counter
-			$pathHandler = $this->xpathHandlers[$this->nodeType][$xpath] ?? null;
+			$pathHandler = $this->findHandler($nodeTypeHandlers, $xpath);
 
 			if ($pathHandler && !$pathHandler->handle($this))
 			{
 				break;
 			}
 		}
+	}
+
+	private function findHandler(array $nodeTypeHandlers, string $searchForXpath):? XpathHandlerInterface
+	{
+		if (isset($nodeTypeHandlers[$searchForXpath]))
+		{
+			return $nodeTypeHandlers[$searchForXpath];
+		}
+
+		foreach ($nodeTypeHandlers as $xpath => $handler)
+		{
+			if (fnmatch($xpath, $searchForXpath))
+			{
+				return $handler;
+			}
+		}
+
+		return null;
 	}
 
 	/**
@@ -302,7 +323,7 @@ class XMLParser extends \XMLReader
 		{
 			/** @var Node $node */
 			$node     = array_splice($this->nodes, -2, 1);
-			$nodeName = $node->getLocalName();
+			$nodeName = $node->localName;
 			$nodeName = (isset($nodeName[0]) && $nodeName[0] ? $nodeName[0] : "root");
 			$node     = $document->createElement($nodeName);
 			$node->appendChild($element);
@@ -332,7 +353,7 @@ class XMLParser extends \XMLReader
 		{
 			/** @var Node $node */
 			$node     = array_splice($this->nodes, -2, 1);
-			$nodeName = $node->getLocalName();
+			$nodeName = $node->localName;
 			$nodeName = (isset($nodeName[0]) && $nodeName[0] ? $nodeName[0] : "root");
 			$node     = $document->createElement($nodeName);
 			$node->appendChild($element);
