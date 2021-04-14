@@ -11,12 +11,41 @@ require_once '../library/RolandD/autoload.php';
 
 use RolandD\XML\XMLParser;
 use RolandD\XML\XpathHandler\EchoHandler;
+use RolandD\XML\XpathHandler\CsviHandler;
+use RolandD\XML\XpathHandler\ShowXpathHandler;
 
 $parser = new XMLParser();
 $parser->open('../tmp/Groups.xml');
-$parser
-	->addXpathHandler('/GroupExport/Groups/Group/GroupName/text()', new EchoHandler(), \XMLReader::TEXT)
-	->addXpathHandler('/GroupExport/Groups/Group/SubGroups/Group/GroupName/text()', new EchoHandler(), \XMLReader::TEXT)
-	->addXpathHandler('/GroupExport/Groups/Group/SubGroups/Group/SubGroups/Group/GroupName/text()', new EchoHandler(), \XMLReader::TEXT)
-;
-$parser->parse();
+
+//$handler = new EchoHandler();
+//$parser
+//	->addXpathHandler('/GroupExport/Groups/Group/GroupName/text()',
+//		$handler, \XMLReader::TEXT)
+//	->addXpathHandler('/GroupExport/Groups/Group/SubGroups/Group/GroupName/text()',
+//		$handler, \XMLReader::TEXT)
+//	->addXpathHandler('/GroupExport/Groups/Group/SubGroups/Group/SubGroups/Group/GroupName/text()',
+//		$handler, \XMLReader::TEXT)
+//;
+$handler = new ShowXpathHandler();
+$parser->addXpathHandler('*', $handler, \XMLReader::ELEMENT);
+$result = $parser->parse2array();
+foreach (array_unique($result) as $elementPath)
+{
+	printf("%s\n", $elementPath);
+}
+
+//$parser
+//	->addXpathHandler('/GroupExport/Groups/Group/Specs/Spec[0]', new EchoHandler())
+//	->addXpathHandler('/GroupExport/Groups/Group/Specs/Spec[1]', new EchoHandler())
+//;
+
+//$csviHandler = new CsviHandler();
+//$parser
+////	->addXpathHandler('/GroupExport/Groups/Group/*/text()', $csviHandler, \XMLReader::TEXT)
+//	->addXpathHandler('/GroupExport/Groups/Group/*', $csviHandler)
+//	->addXpathHandler('/GroupExport/Groups/Group', $csviHandler, \XMLReader::END_ELEMENT)
+//;
+//foreach ($parser->parse() as $result)
+//{
+//	printf("%s\n", print_r($result, true));
+//}

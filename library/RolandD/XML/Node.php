@@ -10,85 +10,76 @@
 
 namespace RolandD\XML;
 
+/**
+ * Class Node
+ * @package RolandD\XML
+ *
+ * @property $nodeType
+ * @property $name
+ * @property $localName
+ * @property $attributeCount
+ * @property $baseURI
+ * @property $depth
+ * @property $hasAttributes
+ * @property $hasValue
+ * @property $isDefault
+ * @property $isEmptyElement
+ * @property $namespaceURI
+ * @property $prefix
+ * @property $value
+ * @property $xmlLang
+ */
 class Node
 {
-	private $type = \XMLReader::NONE;
-
-	private $name = '';
-
-	private $localName = '';
-
-	/**
-	 * Node constructor.
-	 *
-	 * @param   int     $type
-	 * @param   string  $localName
-	 */
-	public function __construct(int $type, string $name, string $localName)
-	{
-		$this->type      = $type;
-		$this->name      = $name;
-		$this->localName = $localName;
-	}
-
-	/**
-	 * @return int
-	 */
-	public function getType(): int
-	{
-		return $this->type;
-	}
-
-	/**
-	 * @param   int  $type
-	 *
-	 * @return Node
-	 */
-	public function setType(int $type): Node
-	{
-		$this->type = $type;
-
-		return $this;
-	}
+	private string $xpath = '';
 
 	/**
 	 * @return string
 	 */
-	public function getName(): string
+	public function getXpath(): string
 	{
-		return $this->name;
+		return $this->xpath;
 	}
 
 	/**
-	 * @param   string  $name
+	 * @param   string  $xpath
 	 *
 	 * @return Node
 	 */
-	public function setName(string $name): Node
+	public function setXpath(string $xpath): Node
 	{
-		$this->name = $name;
+		$this->xpath = $xpath;
 
 		return $this;
 	}
 
-	/**
-	 * @return string
-	 */
-	public function getLocalName(): string
+	public static function fromReader(\XMLReader $reader): self
 	{
-		return $this->localName;
-	}
+		static $otherProps = [
+			'nodeType',
+			'name',
+			'localName',
+			'attributeCount',
+			'baseURI',
+			'depth',
+			'hasAttributes',
+			'hasValue',
+			'isDefault',
+			'isEmptyElement',
+			'namespaceURI',
+			'prefix',
+			'value',
+			'xmlLang'
+		];
 
-	/**
-	 * @param   string  $localName
-	 *
-	 * @return Node
-	 */
-	public function setLocalName(string $localName): Node
-	{
-		$this->localName = $localName;
+		$node = new self();
 
-		return $this;
+		foreach ($otherProps as $name)
+		{
+			$node->{$name} = $reader->{$name};
+		}
+
+		return $node;
 	}
 
 	private function getTypeName(): string

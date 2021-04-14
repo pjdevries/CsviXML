@@ -13,11 +13,17 @@ namespace RolandD\XML\XpathHandler;
 use RolandD\XML\Node;
 use RolandD\XML\XMLParser;
 
-class EchoHandler extends XpathHandlerBase
+class ShowXpathHandler extends XpathHandlerBase
 {
 	public function handle(XMLParser $parser, Node $node):? string
 	{
-		return sprintf("%s - %s - %s - %s", Node::typeName($parser->nodeType), $parser->localName,
-			($parser->hasValue ? $parser->value : 'none'), $parser->currentXpath());
+		$value = (string) (new \SimpleXMLElement($parser->readOuterXml()));
+
+		if (empty($value))
+		{
+			return $node->getXpath();
+		}
+
+		return sprintf("%s: %s", $node->getXpath(), $value);
 	}
 }

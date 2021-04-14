@@ -53,7 +53,7 @@ class XMLParser extends \XMLReader
 	 *
 	 * @var bool
 	 */
-	public $preserveWhiteSpace = true;
+	protected $preserveWhiteSpace = true;
 
 	/**
 	 * Add xpath handler.
@@ -118,7 +118,7 @@ class XMLParser extends \XMLReader
 	 * @link http://php.net/manual/en/xmlreader.read.php
 	 * @return bool Returns TRUE on success or FALSE on failure.
 	 */
-	public function read():? Node
+	public function read(): ?Node
 	{
 		if (!parent::read())
 		{
@@ -139,7 +139,7 @@ class XMLParser extends \XMLReader
 				throw new XmlParserException("Invalid XML: missing items in XMLParser::\$nodesCounter");
 			}
 
-			$previousNode = array_pop($this->nodes);
+			$previousNode    = array_pop($this->nodes);
 			$previousCounter = array_pop($this->nodeCounter);
 		}
 
@@ -154,10 +154,10 @@ class XMLParser extends \XMLReader
 			return true;
 		}
 
-		$node->setXpath($this->currentXpath());
-
 		$this->nodes[$this->depth]       = $node;
 		$this->nodeCounter[$this->depth] = 1;
+
+		$node->setXpath($this->currentXpath());
 
 		return $node;
 	}
@@ -214,50 +214,77 @@ class XMLParser extends \XMLReader
 	 *
 	 * @return void
 	 */
-	public function parse(): void
+	public function parse(): \Generator
 	{
 		while ($node = $this->read())
 		{
-			if (!isset($this->xpathHandlers[$this->nodeType]))
+			$pathHandler = $this->getHandler();
+
+			$result = $pathHandler ? $pathHandler->handle($this, $node) : null;
+
+			if ($result)
 			{
-				continue;
-			}
-
-			$nodeTypeHandlers = $this->xpathHandlers[$this->nodeType];
-
-			$pathHandler = $this->findHandler($nodeTypeHandlers, '//*');
-
-			if ($pathHandler && $pathHandler->handle($this))
-			{
-				continue;
-			}
-
-			$pathHandler = $this->findHandler($nodeTypeHandlers, $this->name);
-
-			if ($pathHandler && $pathHandler->handle($this))
-			{
-				continue;
-			}
-
-			$xpath       = $this->currentXpath(false); // without node counter
-			$pathHandler = $this->findHandler($nodeTypeHandlers, $xpath);
-
-			if ($pathHandler && $pathHandler->handle($this))
-			{
-				continue;
-			}
-
-			$xpath       = $this->currentXpath(true); // with node counter
-			$pathHandler = $this->findHandler($nodeTypeHandlers, $xpath);
-
-			if ($pathHandler && !$pathHandler->handle($this))
-			{
-				break;
+				yield $result;
 			}
 		}
 	}
 
-	private function findHandler(array $nodeTypeHandlers, string $searchForXpath):? XpathHandlerInterface
+	public function parse2array(): array
+	{
+		$array = [];
+
+		while ($node = $this->read())
+		{
+			$pathHandler = $this->getHandler();
+
+			$result = $pathHandler ? $pathHandler->handle($this, $node) : null;
+
+			if ($result)
+			{
+				$array[] = $result;
+			}
+		}
+
+		return $array;
+	}
+
+	private function getHandler(): ?XpathHandlerInterface
+	{
+		if (!isset($this->xpathHandlers[$this->nodeType]))
+		{
+			return null;
+		}
+
+		$nodeTypeHandlers = $this->xpathHandlers[$this->nodeType];
+
+		if ($pathHandler = $this->findHandler($nodeTypeHandlers, '//*'))
+		{
+			return $pathHandler;
+		}
+
+		if ($pathHandler = $this->findHandler($nodeTypeHandlers, $this->name))
+		{
+			return $pathHandler;
+		}
+
+		$xpath = $this->currentXpath(false); // without node counter
+
+		if ($pathHandler = $this->findHandler($nodeTypeHandlers, $xpath))
+		{
+			return $pathHandler;
+		}
+
+		$xpath = $this->currentXpath(true); // with node counter
+
+		if ($pathHandler = $this->findHandler($nodeTypeHandlers, $xpath))
+		{
+			return $pathHandler;
+		}
+
+		return null;
+	}
+
+	private function findHandler(array $nodeTypeHandlers, string $searchForXpath): ?XpathHandlerInterface
 	{
 		if (isset($nodeTypeHandlers[$searchForXpath]))
 		{
@@ -273,6 +300,36 @@ class XMLParser extends \XMLReader
 		}
 
 		return null;
+	}
+	
+	private function match()
+	{
+	/**
+	* From W3C Reccommendation
+	* https://www.w3.org/TR/1999/REC-xpath-19991116/#location-paths
+	**/
+	// para: selects the para element children of the context node
+	// *: selects all element children of the context node
+	// text(): selects all text node children of the context node
+	// @name: selects the name attribute of the context node
+	// @*: selects all the attributes of the context node
+	// para[1]: selects the first para child of the context node
+	// para[last()]: selects the last para child of the context node
+	// */para: selects all para grandchildren of the context node
+	// /doc/chapter[5]/section[2]: selects the second section of the fifth chapter of the doc
+	// chapter//para: selects the para element descendants of the chapter element children of the context node
+	// //para: selects all the para descendants of the document root and thus selects all para elements in the same document as the context node
+	// //olist/item: selects all the item elements in the same document as the context node that have an olist parent
+	// .: selects the context node
+	// .//para: selects the para element descendants of the context node
+	// ..: selects the parent of the context node
+	// ../@lang: selects the lang attribute of the parent of the context node
+	// para[@type="warning"]: selects all para children of the context node that have a type attribute with value warning
+	// para[@type="warning"][5]: selects the fifth para child of the context node that has a type attribute with value warning
+	// para[5][@type="warning"]: selects the fifth para child of the context node if that child has a type attribute with value warning
+	// chapter[title="Introduction"]: selects the chapter children of the context node that have one or more title children with string-value equal to Introduction
+	// chapter[title]: selects the chapter children of the context node that have one or more title children
+	// employee[@secretary and @assistant]: selects all the employee children of the context node that have both a secretary attribute and an assistant attribute
 	}
 
 	/**
@@ -363,5 +420,49 @@ class XMLParser extends \XMLReader
 		$document->appendChild($node);
 
 		return $document;
+	}
+
+	/**
+	 * @return int
+	 */
+	public function getPrevDepth(): int
+	{
+		return $this->prevDepth;
+	}
+
+	/**
+	 * @return Node[]
+	 */
+	public function getNodes(): array
+	{
+		return $this->nodes;
+	}
+
+	/**
+	 * @return int[]
+	 */
+	public function getNodeCounter(): array
+	{
+		return $this->nodeCounter;
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function isPreserveWhiteSpace(): bool
+	{
+		return $this->preserveWhiteSpace;
+	}
+
+	/**
+	 * @param   bool  $preserveWhiteSpace
+	 *
+	 * @return XMLParser
+	 */
+	public function setPreserveWhiteSpace(bool $preserveWhiteSpace): XMLParser
+	{
+		$this->preserveWhiteSpace = $preserveWhiteSpace;
+
+		return $this;
 	}
 }

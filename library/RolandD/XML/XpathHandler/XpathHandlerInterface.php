@@ -10,11 +10,12 @@
 
 namespace RolandD\XML\XpathHandler;
 
+use RolandD\XML\Node;
 use RolandD\XML\XMLParser;
 
 interface XpathHandlerInterface
 {
-	public function handle(XMLParser $parser): bool;
+	public function handle(XMLParser $parser, Node $node);
 
 	public function getNodeType(): int;
 
