@@ -233,16 +233,9 @@ class XMLParser extends \XMLReader
 	{
 		$array = [];
 
-		while ($node = $this->read())
+		foreach ($this->parse() as $item)
 		{
-			$pathHandler = $this->getHandler();
-
-			$result = $pathHandler ? $pathHandler->handle($this, $node) : null;
-
-			if ($result)
-			{
-				$array[] = $result;
-			}
+			$arry[] = $item;
 		}
 
 		return $array;
