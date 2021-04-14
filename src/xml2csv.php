@@ -32,7 +32,8 @@ $parser->addXpathHandler('*', $handler, \XMLReader::ELEMENT);
 $elements = [];
 foreach ($parser->parse() as $element)
 {
-	if (!isset($elements[$element['xpath']]))
+	if (!isset($elements[$element['xpath']])
+		|| (empty($elements[$element['xpath']]) && !empty($element['value'])))
 	{
 		$elements[$element['xpath']] = $element['value'];
 	}
