@@ -17,13 +17,13 @@ class ShowXpathHandler extends XpathHandlerBase
 {
 	public function handle(XMLParser $parser, Node $node):? string
 	{
-		$value = (string) (new \SimpleXMLElement($parser->readOuterXml()));
+		$value = trim((string) (new \SimpleXMLElement($parser->readOuterXml())));
 
-		if (empty($value))
+		if ($value === '')
 		{
 			return $node->getXpath();
 		}
 
-		return sprintf("%s: %s", $node->getXpath(), $value);
+		return sprintf("%s: [%s]", $node->getXpath(), $value);
 	}
 }
