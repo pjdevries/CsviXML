@@ -15,15 +15,10 @@ use RolandD\XML\XMLParser;
 
 class ShowXpathHandler extends XpathHandlerBase
 {
-	public function handle(XMLParser $parser, Node $node):? string
+	public function handle(XMLParser $parser, Node $node): array
 	{
-		$value = (string) (new \SimpleXMLElement($parser->readOuterXml()));
+		$value = trim((string) (new \SimpleXMLElement($parser->readOuterXml())));
 
-		if (empty($value))
-		{
-			return $node->getXpath();
-		}
-
-		return sprintf("%s: %s", $node->getXpath(), $value);
+		return ['xpath' => $node->getXpath(), 'value' => $value];
 	}
 }

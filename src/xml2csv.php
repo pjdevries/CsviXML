@@ -28,10 +28,20 @@ $parser->open('../tmp/Groups.xml');
 //;
 $handler = new ShowXpathHandler();
 $parser->addXpathHandler('*', $handler, \XMLReader::ELEMENT);
-$result = $parser->parse2array();
-foreach (array_unique($result) as $elementPath)
+
+$elements = [];
+foreach ($parser->parse() as $element)
 {
-	printf("%s\n", $elementPath);
+	if (!isset($elements[$element['xpath']]))
+	{
+		$elements[$element['xpath']] = $element['value'];
+	}
+}
+
+ksort($elements);
+foreach ($elements as $key => $value)
+{
+	printf("%s: [%s]\n", $key, $value);
 }
 
 //$parser
